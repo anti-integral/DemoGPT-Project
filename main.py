@@ -1,13 +1,15 @@
 from fastapi import FastAPI
 import random
 import openai
+from decouple import config
 
 app = FastAPI()
 
 
 @app.get("/")
 def prompt():
-    openai.api_key = "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"
+    key = config("openai_key")
+    openai.api_key = key
     prompt_text = "write a code for create a simple landing page for my website."
     # Set the parameters for the OpenAI API call
     parameters = {
