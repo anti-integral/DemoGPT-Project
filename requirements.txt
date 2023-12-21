@@ -11,7 +11,8 @@ argon2-cffi-bindings==21.2.0
 asgiref==3.6.0
 asttokens==2.4.0
 astunparse==1.6.3
-async-timeout==4.0.2
+async-timeout==4.0.3
+asyncpg==0.29.0
 attrs==23.1.0
 autopep8==2.0.2
 azure-core==1.26.3
@@ -67,6 +68,7 @@ cupshelpers==1.0
 cycler==0.11.0
 cymem==2.0.7
 cytoolz==0.12.1
+databases==0.8.0
 dataclasses-json==0.5.7
 dbus-python==1.2.16
 debugpy==1.8.0
@@ -349,7 +351,7 @@ soupsieve==2.5
 spacy==3.5.3
 spacy-legacy==3.0.12
 spacy-loggers==1.0.4
-SQLAlchemy==2.0.15
+SQLAlchemy==1.4.50
 sqlparse==0.4.4
 srsly==2.4.6
 stack-data==0.6.3
