@@ -227,7 +227,6 @@ nbconvert==6.5.0
 nbformat==5.3.0
 nest-asyncio==1.5.8
 netifaces==0.10.4
-new-package @ git+https://github.com/Viral-Nation-Official/vn-microservice-git-package-test.git@2d0a00ea195441129b4cf3ea36bbd49238729edc
 nltk==3.8.1
 notebook==6.4.10
 npm==0.1.1
@@ -401,7 +400,6 @@ uvicorn==0.24.0.post1
 uvloop==0.17.0
 vine==5.0.0
 virtualenv==20.14.1
-vntech-test @ git+https://github.com/Viral-Nation-Official/vn-microservice-git-package-test.git@b4941780cf8e11e4aca4a20d48a8e9556fd26e96
 wadllib==1.3.3
 wagtail==5.0
 wasabi==1.1.1
