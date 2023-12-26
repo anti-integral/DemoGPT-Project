@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from schemas import UserCreate, UserResponse, Response, Token
+from schemas import UserCreate, UserResponse, Response, Token, LoginRequest
 from crud import create_user, get_user, get_user_by_email, verify_password
 from database import SessionLocal, engine, Base
 from decouple import config
@@ -49,18 +49,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(login_request: LoginRequest):
     db = SessionLocal()
-    user = get_user_by_email(db, email=form_data.username)
-    if user is None or not verify_password(form_data.password, user.password):
+    user = get_user_by_email(db, email=login_request.email)
+    if user is None or not verify_password(login_request.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": form_data.username}, expires_delta=access_token_expires
+        data={"sub": login_request.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
