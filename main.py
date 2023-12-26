@@ -44,7 +44,8 @@ def get_db():
 async def signup(user_create: UserCreate, db: Session = Depends(get_db)):
     # Check if passwords match
     if user_create.password != user_create.confirm_password:
-        raise HTTPException(status_code=400, detail="Passwords do not match")
+        error_detail = {"message": "Passwords do not match"}
+        raise HTTPException(status_code=400, detail=error_detail)
 
     # Create user (adjust the logic accordingly)
     db_user = create_user(
