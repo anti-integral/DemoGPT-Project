@@ -11,6 +11,7 @@ from jwt import create_access_token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import IntegrityError
 
 UserCreate
 app = FastAPI()
@@ -48,21 +49,26 @@ async def signup(user_create: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=error_detail)
 
     # Create user (adjust the logic accordingly)
-    db_user = create_user(
-        db,
-        email=user_create.email,
-        password=user_create.password,
-        # confirm_password=user_create.confirm_password,
-    )
+    try:
+        # Create user (adjust the logic accordingly)
+        db_user = create_user(
+            db,
+            email=user_create.email,
+            password=user_create.password,
+            # confirm_password=user_create.confirm_password,
+        )
 
-    return {
-        "code": "200",
-        "status": "Ok",
-        "message": "User registered successfully",
-        "result": UserResponse(
-            id=db_user.id, email=db_user.email  # Provide the user ID
-        ),
-    }
+        return {
+            "code": "200",
+            "status": "Ok",
+            "message": "User registered successfully",
+            "result": UserResponse(
+                id=db_user.id, email=db_user.email  # Provide the user ID
+            ),
+        }
+    except IntegrityError as e:
+        error_detail = {"message": "Email is already registered"}
+        raise HTTPException(status_code=400, detail=error_detail)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
