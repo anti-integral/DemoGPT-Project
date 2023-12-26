@@ -10,9 +10,21 @@ from deployment_vercel import deploy_html_to_vercel
 from jwt import create_access_token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 
 UserCreate
 app = FastAPI()
+
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Database setup
 Base.metadata.create_all(bind=engine)
@@ -28,20 +40,27 @@ def get_db():
         db.close()
 
 
-# Signup endpoint
 @app.post("/signup/", response_model=Response)
 async def signup(user_create: UserCreate, db: Session = Depends(get_db)):
+    # Check if passwords match
+    if user_create.password != user_create.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    # Create user (adjust the logic accordingly)
     db_user = create_user(
         db,
-        username=user_create.username,
         email=user_create.email,
         password=user_create.password,
+        # confirm_password=user_create.confirm_password,
     )
+
     return {
         "code": "200",
         "status": "Ok",
         "message": "User registered successfully",
-        "result": UserResponse(**db_user.__dict__),
+        "result": UserResponse(
+            id=db_user.id, email=db_user.email  # Provide the user ID
+        ),
     }
 
 

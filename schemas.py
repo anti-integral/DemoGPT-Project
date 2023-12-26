@@ -4,20 +4,22 @@ from pydantic import BaseModel
 
 
 class UserBase(BaseModel):
-    username: str
     email: str
 
 
 class UserCreate(UserBase):
     password: str
+    confirm_password: str
 
 
 class UserLogin(UserBase):
+    email: str
     password: str
 
 
-class UserResponse(UserBase):
-    id: int
+class UserResponse(BaseModel):
+    id: Optional[int]
+    email: str
 
 
 class Response(BaseModel):

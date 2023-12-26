@@ -9,6 +9,6 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, index=True, unique=True, nullable=False)
     email = Column(String, index=True, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    # confirm_password: Column(String, nullable=True)

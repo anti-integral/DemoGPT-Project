@@ -9,9 +9,13 @@ def hash_password(password: str) -> str:
     return hashed_password.decode("utf-8")
 
 
-def create_user(db: Session, username: str, email: str, password: str) -> User:
+def create_user(
+    db: Session,
+    email: str,
+    password: str,
+) -> User:
     hashed_password = hash_password(password)  # Hash the password
-    db_user = User(username=username, email=email, password=hashed_password)
+    db_user = User(email=email, password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
