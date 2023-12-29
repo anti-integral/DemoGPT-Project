@@ -1,7 +1,14 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
 from sqlalchemy.orm import Session
-from schemas import UserCreate, UserResponse, Response, Token, LoginRequest
+from schemas import (
+    UserCreate,
+    UserResponse,
+    Response,
+    Token,
+    LoginRequest,
+    PromptRequest,
+)
 from crud import create_user, get_user, get_user_by_email, verify_password
 from database import SessionLocal, engine, Base
 from decouple import config
@@ -12,10 +19,17 @@ from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
+from prompt_service.prompt_to_code import prompt
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+import uvicorn
+
+# from starlette.templating import Jinja2Templates
+import os
 
 UserCreate
 app = FastAPI()
-
+templates = Jinja2Templates(directory="templates")
 
 origins = ["*"]
 
@@ -91,23 +105,58 @@ async def login_for_access_token(login_request: LoginRequest):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-def prompt():
-    key = config("openai_key")
-    openai.api_key = key  # Set the API key for the openai library
+@app.post("/generate", response_class=HTMLResponse)
+async def generate_website(request: Request, prompts: PromptRequest):
+    prompt_input = prompts.prompt
+    generated_content = prompt(prompt_input)
 
-    prompt_text = "write a code for create a simple landing page for my website."
+    templates_dir = "templates"
+    os.makedirs(templates_dir, exist_ok=True)
 
-    parameters = {
-        "engine": "text-davinci-003",
-        "prompt": prompt_text,
-        "max_tokens": 100,
-        "temperature": 0.7,
-    }
+    # Save the generated content to the "generated_website.html" file
+    with open(
+        os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
+    ) as file:
+        file.write(generated_content)
+    redirect_path = os.path.join(templates_dir, "generated_website.html")
+    return templates.TemplateResponse("generated_website.html", {"request": request})
+    # try:
+    #     return RedirectResponse(url=f"/{templates_dir}/generated_website.html")
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
-    response = openai.Completion.create(**parameters)  # Use openai.Completion
+    # generated_url = request.url_for("generated_website")
 
-    generated_text = response["choices"][0]["text"].strip()
+    # return {"generated_url": generated_url}
 
-    deployed_url = deploy_html_to_vercel(generated_text)
 
-    return Response({"generated_text": generated_text, "deployed_url": deployed_url})
+@app.post("/edit", response_class=HTMLResponse)
+async def edit_website(prompts: str = Form(...)):
+    edited_content = prompt(prompts)
+    return templates.TemplateResponse(
+        "edited_website.html",
+    )
+
+
+# # @app.post("/prompt")
+# def prompt():
+#     key = config("openai_key")
+#     openai.api_key = key  # Set the API key for the openai library
+
+#     prompt_text = "write a code for create a simple landing page for my website."
+
+#     parameters = {
+#         "engine": "text-davinci-003",
+#         "prompt": prompt_text,
+#         "max_tokens": 500,
+#         "temperature": 0.7,
+#     }
+
+#     response = openai.Completion.create(**parameters)  # Use openai.Completion
+
+#     generated_text = response["choices"][0]["text"].strip()
+
+#     return Response({"generated_text": generated_text})
+
+if (__name__) == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8036, reload=True)
