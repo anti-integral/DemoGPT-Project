@@ -131,11 +131,10 @@ async def generate_website(request: Request, prompts: PromptRequest):
 
 
 @app.post("/edit", response_class=HTMLResponse)
-async def edit_website(prompts: str = Form(...)):
-    edited_content = prompt(prompts)
-    return templates.TemplateResponse(
-        "edited_website.html",
-    )
+async def generate_website(request: Request, prompts: PromptRequest):
+    prompt_input = prompts.prompt
+    # edited_content = prompt(prompts)
+    return templates.TemplateResponse("edited_website.html", {"request": request})
 
 
 # # @app.post("/prompt")
