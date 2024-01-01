@@ -1,25 +1,26 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
 from sqlalchemy.orm import Session
-from schemas import (
+from services.schemas import (
     UserCreate,
     UserResponse,
     Response,
     Token,
     LoginRequest,
     PromptRequest,
+    EditPromptRequest,
 )
-from crud import create_user, get_user, get_user_by_email, verify_password
-from database import SessionLocal, engine, Base
+from services.crud import create_user, get_user, get_user_by_email, verify_password
+from services.database import SessionLocal, engine, Base
 from decouple import config
 import openai
 from deployment_vercel import deploy_html_to_vercel
-from jwt import create_access_token
+from services.jwt import create_access_token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
-from prompt_service.prompt_to_code import prompt
+from prompt_service.prompt_to_code import prompt, apply_edits
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -44,6 +45,8 @@ app.add_middleware(
 # Database setup
 Base.metadata.create_all(bind=engine)
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+websites = {}
 
 
 # Dependency to get the database session
@@ -118,8 +121,14 @@ async def generate_website(request: Request, prompts: PromptRequest):
         os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
     ) as file:
         file.write(generated_content)
-    redirect_path = os.path.join(templates_dir, "generated_website.html")
-    return templates.TemplateResponse("generated_website.html", {"request": request})
+
+    website_id = len(websites) + 1
+    websites[website_id] = {"content": generated_content}
+
+    return templates.TemplateResponse(
+        "generated_website.html",
+        {"request": request, "content": generated_content, "website_id": website_id},
+    )
     # try:
     #     return RedirectResponse(url=f"/{templates_dir}/generated_website.html")
     # except Exception as e:
@@ -131,31 +140,29 @@ async def generate_website(request: Request, prompts: PromptRequest):
 
 
 @app.post("/edit", response_class=HTMLResponse)
-async def generate_website(request: Request, prompts: PromptRequest):
-    prompt_input = prompts.prompt
-    # edited_content = prompt(prompts)
-    return templates.TemplateResponse("edited_website.html", {"request": request})
+async def edit_generate_website(request: Request, data: EditPromptRequest):
+    prompt_input = data.editprompt
+    website_id = data.websiteID
 
+    if website_id not in websites:
+        raise HTTPException(status_code=404, detail="Website not found")
 
-# # @app.post("/prompt")
-# def prompt():
-#     key = config("openai_key")
-#     openai.api_key = key  # Set the API key for the openai library
+    existing_content = websites[website_id]["content"]
 
-#     prompt_text = "write a code for create a simple landing page for my website."
+    # Process the edit prompt and generate edited content
+    edited_content = prompt(prompt_input)
 
-#     parameters = {
-#         "engine": "text-davinci-003",
-#         "prompt": prompt_text,
-#         "max_tokens": 500,
-#         "temperature": 0.7,
-#     }
+    # Apply the edits to the existing content (simplified logic)
+    updated_content = apply_edits(existing_content, edited_content)
 
-#     response = openai.Completion.create(**parameters)  # Use openai.Completion
+    # Save the updated content in the temporary storage
+    websites[website_id]["content"] = updated_content
 
-#     generated_text = response["choices"][0]["text"].strip()
+    return templates.TemplateResponse(
+        "edited_website.html",
+        {"request": request, "content": updated_content, "website_id": website_id},
+    )
 
-#     return Response({"generated_text": generated_text})
 
 if (__name__) == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8036, reload=True)

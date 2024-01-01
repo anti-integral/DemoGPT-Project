@@ -41,3 +41,8 @@ class LoginRequest(BaseModel):
 
 class PromptRequest(BaseModel):
     prompt: str
+
+
+class EditPromptRequest(BaseModel):
+    editprompt: str
+    websiteID: int
