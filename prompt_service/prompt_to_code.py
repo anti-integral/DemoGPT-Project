@@ -54,10 +54,7 @@ def prompt(
     return assistant_message
 
 
-def editprompt(
-    app_idea, app_feature, app_look, conversation_file="conversation_history.json"
-):
-    user_message = f"generate the code of my website. Title of my website is {app_idea} and features of my website is {app_feature} add all code of my website in single html "
+def editprompt(prompt_input, conversation_file="conversation_history.json"):
     key = config("openai_key")
     openai.api_key = key  # Set the API key for the openai library
 
@@ -65,7 +62,7 @@ def editprompt(
     conversation = load_conversation_from_file(conversation_file)
 
     # Append the user's message to the conversation
-    conversation.append({"role": "user", "content": user_message})
+    conversation.append({"role": "user", "content": prompt_input})
 
     # Call OpenAI API with the entire conversation history
     response = openai.ChatCompletion.create(model="gpt-4", messages=conversation)

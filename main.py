@@ -147,7 +147,7 @@ async def edit_generate_website(request: Request, data: EditPromptRequest):
     prompt_input = data.editprompt
     # website_id = data.websiteID
 
-    generated_content = prompt(prompt_input)
+    generated_content = editprompt(prompt_input)
 
     templates_dir = "templates"
     os.makedirs(templates_dir, exist_ok=True)
