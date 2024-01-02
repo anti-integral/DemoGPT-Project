@@ -1,59 +1,95 @@
 import openai
+import json
 from decouple import config
-import difflib
+import os
 
 
-def prompt(prompt_input):
+def save_conversation_to_file(conversation, filename="conversation_history.json"):
+    with open(filename, "w") as file:
+        json.dump(conversation, file)
+
+
+def load_conversation_from_file(filename="conversation_history.json"):
+    try:
+        with open(filename, "r") as file:
+            conversation = json.load(file)
+    except FileNotFoundError:
+        conversation = []
+    return conversation
+
+
+def prompt(
+    app_idea, app_feature, app_look, conversation_file="conversation_history.json"
+):
+    user_message = f"generate the code of my website. Title of my website is {app_idea} and features of my website is {app_feature} add all code of my website in single html "
     key = config("openai_key")
     openai.api_key = key  # Set the API key for the openai library
 
-    # prompt_text = "write a code for create a simple landing page for my website."
+    # Load the existing conversation history
+    conversation = load_conversation_from_file(conversation_file)
 
-    parameters = {
-        "engine": "text-davinci-003",
-        "prompt": prompt_input,
-        "max_tokens": 500,
-        "temperature": 0.7,
-    }
+    # Append the user's message to the conversation
+    conversation.append({"role": "user", "content": user_message})
 
-    response = openai.Completion.create(**parameters)  # Use openai.Completion
+    # Call OpenAI API with the entire conversation history
+    response = openai.ChatCompletion.create(model="gpt-4", messages=conversation)
 
-    generated_text = response["choices"][0]["text"].strip()
-    # print(generated_text)
+    # Extract the assistant's message from the response
+    assistant_message = response["choices"][0]["message"]["content"]
+    print(assistant_message)
 
-    return generated_text
+    # Append the assistant's message to the conversation
+    conversation.append({"role": "assistant", "content": assistant_message})
+
+    # Save the updated conversation history to the file
+    save_conversation_to_file(conversation, conversation_file)
+    templates_dir = "templates"
+    os.makedirs(templates_dir, exist_ok=True)
+
+    # with open(
+    #     os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
+    # ) as file:
+    #     file.write(assistant_message)
+
+    return assistant_message
 
 
-def apply_edits(existing_content, edited_content):
-    """
-    Apply edits to the existing content based on the differences between
-    the existing content and the edited content.
-    """
-    differ = difflib.Differ()
-    diff = list(
-        differ.compare(existing_content.splitlines(), edited_content.splitlines())
-    )
+def editprompt(
+    app_idea, app_feature, app_look, conversation_file="conversation_history.json"
+):
+    user_message = f"generate the code of my website. Title of my website is {app_idea} and features of my website is {app_feature} add all code of my website in single html "
+    key = config("openai_key")
+    openai.api_key = key  # Set the API key for the openai library
 
-    # Track the current position in the existing content
-    current_position = 0
+    # Load the existing conversation history
+    conversation = load_conversation_from_file(conversation_file)
 
-    # Iterate through the differences and apply edits
-    for line in diff:
-        if line.startswith(" "):
-            # Unchanged line, move the current position
-            current_position += len(line) + 1
-        elif line.startswith("-"):
-            # Line removed in the edited content, remove from existing content
-            start = current_position
-            end = current_position + len(line) + 1
-            existing_content = existing_content[:start] + existing_content[end:]
-        elif line.startswith("+"):
-            # Line added in the edited content, insert into existing content
-            start = current_position
-            existing_content = (
-                existing_content[:start] + line[2:] + existing_content[start:]
-            )
-        elif line.startswith("?"):
-            print("hello")
-            # Ignore information about the difference
-    return existing_content
+    # Append the user's message to the conversation
+    conversation.append({"role": "user", "content": user_message})
+
+    # Call OpenAI API with the entire conversation history
+    response = openai.ChatCompletion.create(model="gpt-4", messages=conversation)
+
+    # Extract the assistant's message from the response
+    assistant_message = response["choices"][0]["message"]["content"]
+    print(assistant_message)
+
+    # Append the assistant's message to the conversation
+    conversation.append({"role": "assistant", "content": assistant_message})
+
+    # Save the updated conversation history to the file
+    save_conversation_to_file(conversation, conversation_file)
+    templates_dir = "templates"
+    os.makedirs(templates_dir, exist_ok=True)
+
+    # with open(
+    #     os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
+    # ) as file:
+    #     file.write(assistant_message)
+
+    return assistant_message
+
+
+# Example usage:
+# user_message = "Can you add a game to the home page for my visitors to play update this functionality and provide me fully updated code for my website with css and js i need full code"
+# prompt(user_message)

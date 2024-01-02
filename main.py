@@ -20,7 +20,7 @@ from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
-from prompt_service.prompt_to_code import prompt, apply_edits
+from prompt_service.prompt_to_code import prompt, editprompt
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -110,8 +110,11 @@ async def login_for_access_token(login_request: LoginRequest):
 
 @app.post("/generate", response_class=HTMLResponse)
 async def generate_website(request: Request, prompts: PromptRequest):
-    prompt_input = prompts.prompt
-    generated_content = prompt(prompt_input)
+    app_idea = prompts.appIdea
+    app_feature = prompts.appFeatures
+    app_look = prompts.appLook
+
+    generated_content = prompt(app_idea, app_feature, app_look)
 
     templates_dir = "templates"
     os.makedirs(templates_dir, exist_ok=True)
@@ -122,12 +125,12 @@ async def generate_website(request: Request, prompts: PromptRequest):
     ) as file:
         file.write(generated_content)
 
-    website_id = len(websites) + 1
-    websites[website_id] = {"content": generated_content}
+    # website_id = len(websites) + 1
+    # websites[website_id] = {"content": generated_content}
 
     return templates.TemplateResponse(
         "generated_website.html",
-        {"request": request, "content": generated_content, "website_id": website_id},
+        {"request": request, "content": generated_content},
     )
     # try:
     #     return RedirectResponse(url=f"/{templates_dir}/generated_website.html")
@@ -142,25 +145,28 @@ async def generate_website(request: Request, prompts: PromptRequest):
 @app.post("/edit", response_class=HTMLResponse)
 async def edit_generate_website(request: Request, data: EditPromptRequest):
     prompt_input = data.editprompt
-    website_id = data.websiteID
+    # website_id = data.websiteID
 
-    if website_id not in websites:
-        raise HTTPException(status_code=404, detail="Website not found")
+    generated_content = prompt(prompt_input)
 
-    existing_content = websites[website_id]["content"]
+    templates_dir = "templates"
+    os.makedirs(templates_dir, exist_ok=True)
 
-    # Process the edit prompt and generate edited content
-    edited_content = prompt(prompt_input)
+    # Save the generated content to the "generated_website.html" file
+    with open(
+        os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
+    ) as file:
+        file.write(generated_content)
 
-    # Apply the edits to the existing content (simplified logic)
-    updated_content = apply_edits(existing_content, edited_content)
-
-    # Save the updated content in the temporary storage
-    websites[website_id]["content"] = updated_content
+    # website_id = len(websites) + 1
+    # websites[website_id] = {"content": generated_content}
 
     return templates.TemplateResponse(
-        "edited_website.html",
-        {"request": request, "content": updated_content, "website_id": website_id},
+        "generated_website.html",
+        {
+            "request": request,
+            "content": generated_content,
+        },
     )
 
 

@@ -40,9 +40,11 @@ class LoginRequest(BaseModel):
 
 
 class PromptRequest(BaseModel):
-    prompt: str
+    appIdea: str
+    appFeatures: str
+    appLook: str
 
 
 class EditPromptRequest(BaseModel):
     editprompt: str
-    websiteID: int
+    # websiteID: int
