@@ -1,5 +1,6 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from services.schemas import (
     UserCreate,
@@ -10,12 +11,14 @@ from services.schemas import (
     PromptRequest,
     EditPromptRequest,
 )
-from services.crud import create_user, get_user, get_user_by_email, verify_password
-from services.database import SessionLocal, engine, Base
+from services.crud import verify_password
+
+# from services.database import SessionLocal, engine, Base
 from decouple import config
 import openai
 from deployment_vercel import deploy_html_to_vercel
-from services.jwt import create_access_token
+from services.jwt import create_access_token, decode_token
+from services import mongo_connection, crud
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,8 +27,6 @@ from prompt_service.prompt_to_code import prompt, editprompt
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
-
-# from starlette.templating import Jinja2Templates
 import os
 
 UserCreate
@@ -42,47 +43,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database setup
-Base.metadata.create_all(bind=engine)
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 websites = {}
 
 
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@app.post("/signup/", response_model=Response)
-async def signup(user_create: UserCreate, db: Session = Depends(get_db)):
+@app.post("/signup")
+async def signup(user_create: UserCreate):
     # Check if passwords match
     if user_create.password != user_create.confirm_password:
         error_detail = {"message": "Passwords do not match"}
         raise HTTPException(status_code=400, detail=error_detail)
 
-    # Create user (adjust the logic accordingly)
     try:
-        # Create user (adjust the logic accordingly)
-        db_user = create_user(
-            db,
-            email=user_create.email,
-            password=user_create.password,
-            # confirm_password=user_create.confirm_password,
+        hashpassword = crud.hash_password(user_create.password)
+
+        # Check if the email already exists in the database
+        existing_user = mongo_connection.UserCollection.find_one(
+            {"email": user_create.email}
         )
 
-        return {
-            "code": "200",
-            "status": "Ok",
-            "message": "User registered successfully",
-            "result": UserResponse(
-                id=db_user.id, email=db_user.email  # Provide the user ID
-            ),
+        if existing_user:
+            # Email already exists, handle accordingly (raise exception or return response)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+
+        # Email does not exist, proceed with user registration
+        data = {
+            "email": user_create.email,
+            "password": hashpassword,
         }
+
+        # Insert the data into the MongoDB collection
+        result = mongo_connection.UserCollection.insert_one(data)
+
+        # Retrieve the inserted document using the _id returned by insert_one
+        inserted_user = mongo_connection.UserCollection.find_one(
+            {"_id": result.inserted_id}
+        )
+
+        response_data = {
+            "code": "200",
+            "status": "success",
+            "message": "User registered successfully",
+            "result": {
+                "id": str(
+                    result.inserted_id
+                ),  # Convert ObjectId to string for the response
+                "email": inserted_user["email"],
+            },
+        }
+
+        return JSONResponse(content=response_data)
     except IntegrityError as e:
         error_detail = {"message": "Email is already registered"}
         raise HTTPException(status_code=400, detail=error_detail)
@@ -91,11 +105,12 @@ async def signup(user_create: UserCreate, db: Session = Depends(get_db)):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-@app.post("/token", response_model=Token)
+@app.post("/login", response_model=Token)
 async def login_for_access_token(login_request: LoginRequest):
-    db = SessionLocal()
-    user = get_user_by_email(db, email=login_request.email)
-    if user is None or not verify_password(login_request.password, user.password):
+    user = mongo_connection.UserCollection.find_one({"email": login_request.email})
+    if user is None or not verify_password(
+        login_request.password, user.get("password")
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -109,7 +124,11 @@ async def login_for_access_token(login_request: LoginRequest):
 
 
 @app.post("/generate", response_class=HTMLResponse)
-async def generate_website(request: Request, prompts: PromptRequest):
+async def generate_website(
+    request: Request,
+    prompts: PromptRequest,
+    # decoded_token: dict = Depends(decode_token),
+):
     app_idea = prompts.appIdea
     app_feature = prompts.appFeatures
     app_look = prompts.appLook
@@ -125,21 +144,10 @@ async def generate_website(request: Request, prompts: PromptRequest):
     ) as file:
         file.write(generated_content)
 
-    # website_id = len(websites) + 1
-    # websites[website_id] = {"content": generated_content}
-
     return templates.TemplateResponse(
         "generated_website.html",
         {"request": request, "content": generated_content},
     )
-    # try:
-    #     return RedirectResponse(url=f"/{templates_dir}/generated_website.html")
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
-
-    # generated_url = request.url_for("generated_website")
-
-    # return {"generated_url": generated_url}
 
 
 @app.post("/edit", response_class=HTMLResponse)

@@ -2,6 +2,7 @@ import openai
 import json
 from decouple import config
 import os
+from services import mongo_connection
 
 
 def save_conversation_to_file(conversation, filename="conversation_history.json"):

@@ -1,14 +1,158 @@
-<html>
+Sure, I will add a simple interactive game to your webpage. This game is the classic "Rock, Paper, Scissors". The updated code including HTML, CSS and JavaScript is below:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>MyGen SEO Generator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Trainer Portfolio</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #212121;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: #424242;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            margin-bottom: 20px;
+        }
+
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin-right: 10px;
+        }
+
+        nav ul li a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        nav ul li a:hover {
+            color: #9fa8da;
+            text-decoration: underline;
+        }
+
+        header img {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        h1, h2 {
+            margin: 0;
+            padding: 10px 0;
+        }
+
+        section {
+            background-color: #424242;
+            padding: 20px;
+            margin: 1em 0;
+            border-radius: 8px;
+        }
+
+        p, li {
+            color: #bdbdbd;
+        }
+        
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        form input, form textarea {
+            margin-bottom: 1em;
+            padding: 0.5em;
+            font-size: 1em;
+        }
+
+        form button {
+            padding: 1em;
+            font-size: 1em;
+            font-weight: bold;
+            background-color: #9fa8da;
+            color: #212121;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        form button:hover {
+            background-color: #7986cb;
+        }
+
+        #game {
+            text-align: center;
+            padding-top: 2em;
+        }
+
+        #game button {
+            margin: 1em;
+            padding: 0.5em 1em;
+            font-size: 1em;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-<h1>MyGen SEO Generator</h1>
+    <!-- previous HTML code here... -->
 
-<form action="generate.php" method="post">
-  Enter website name:  <input type="text" name="website_name" required="required"><br>
-  <input type="submit" value="Generate SEO">
-</form>
+    <section id="game">
+        <h2>Let's play Rock Paper Scissors</h2>
+        <button onclick="playGame('rock')">Rock</button>
+        <button onclick="playGame('paper')">Paper</button>
+        <button onclick="playGame('scissors')">Scissors</button>
+        <p id="gameResult"></p>
+    </section>
+    <!-- contact section code here... -->
+    <script>
+        // this function triggers an alert when the header is clicked
+        function myFunction() {
+            alert("You clicked the header!");
+        }
 
+        // this function is used to play the rock, paper, scissors game
+        function playGame(userChoice) {
+            const choices = ['rock', 'paper', 'scissors'];
+            const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+            let result = '';
+
+            if(userChoice === computerChoice) {
+                result = "It's a tie!";
+            } else if (
+                (userChoice === 'rock' && computerChoice === 'scissors') || 
+                (userChoice === 'scissors' && computerChoice === 'paper') || 
+                (userChoice === 'paper' && computerChoice === 'rock')
+            ) {
+                result = `You win! ${userChoice} beats ${computerChoice}.`;
+            } else {
+                result = `You lose! ${computerChoice} beats ${userChoice}.`;
+            }
+
+            // display the game result
+            document.getElementById('gameResult').innerText = result;
+        }
+    </script>
 </body>
 </html>
+```
+
+Please replace "previous HTML code here" with previously provided HTML content and "contact section code here" with the contact form HTML provided earlier. 
+Also, replace "trainer_photo.jpg" with the actual path to your image. The form does not process the data, it's just a structure that you see in the browser. For the data to be sent, server-side processing will be needed.
