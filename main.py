@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
 websites = {}
 
@@ -89,7 +89,7 @@ async def signup(user_create: UserCreate):
             "status": "success",
             "message": "User registered successfully",
             "result": {
-                "id": str(
+                "user_id": str(
                     result.inserted_id
                 ),  # Convert ObjectId to string for the response
                 "email": inserted_user["email"],
@@ -100,9 +100,6 @@ async def signup(user_create: UserCreate):
     except IntegrityError as e:
         error_detail = {"message": "Email is already registered"}
         raise HTTPException(status_code=400, detail=error_detail)
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 @app.post("/login", response_model=Token)
@@ -118,20 +115,38 @@ async def login_for_access_token(login_request: LoginRequest):
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": login_request.email}, expires_delta=access_token_expires
+        data={"sub": str(user["_id"]), "email": login_request.email},
+        expires_delta=access_token_expires,
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    login_response_data = {
+        "code": "200",
+        "status": "success",
+        "message": "User login successfully",
+        "result": {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": str(
+                user.get("_id")
+            ),  # Convert ObjectId to string for the response
+        },
+    }
+    return JSONResponse(content=login_response_data)
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 @app.post("/generate", response_class=HTMLResponse)
 async def generate_website(
     request: Request,
     prompts: PromptRequest,
-    # decoded_token: dict = Depends(decode_token),
+    token: str = Depends(oauth2_scheme),
 ):
     app_idea = prompts.appIdea
     app_feature = prompts.appFeatures
     app_look = prompts.appLook
+    decode = decode_token(token)
+    user_id = decode.get("sub")
 
     generated_content = prompt(app_idea, app_feature, app_look)
 
@@ -151,8 +166,12 @@ async def generate_website(
 
 
 @app.post("/edit", response_class=HTMLResponse)
-async def edit_generate_website(request: Request, data: EditPromptRequest):
+async def edit_generate_website(
+    request: Request, data: EditPromptRequest, token: str = Depends(oauth2_scheme)
+):
     prompt_input = data.editprompt
+    decode = decode_token(token)
+    user_id = decode.get("sub")
     # website_id = data.websiteID
 
     generated_content = editprompt(prompt_input)

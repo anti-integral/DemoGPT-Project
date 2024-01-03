@@ -5,12 +5,12 @@ import os
 from services import mongo_connection
 
 
-def save_conversation_to_file(conversation, filename="conversation_history.json"):
+def save_conversation_to_db(conversation, filename="conversation_history.json"):
     with open(filename, "w") as file:
         json.dump(conversation, file)
 
 
-def load_conversation_from_file(filename="conversation_history.json"):
+def load_conversation_db(filename="conversation_history.json"):
     try:
         with open(filename, "r") as file:
             conversation = json.load(file)
@@ -27,7 +27,7 @@ def prompt(
     openai.api_key = key  # Set the API key for the openai library
 
     # Load the existing conversation history
-    conversation = load_conversation_from_file(conversation_file)
+    conversation = load_conversation_db(conversation_file)
 
     # Append the user's message to the conversation
     conversation.append({"role": "user", "content": user_message})
@@ -43,7 +43,7 @@ def prompt(
     conversation.append({"role": "assistant", "content": assistant_message})
 
     # Save the updated conversation history to the file
-    save_conversation_to_file(conversation, conversation_file)
+    save_conversation_to_db(conversation, conversation_file)
     templates_dir = "templates"
     os.makedirs(templates_dir, exist_ok=True)
 
@@ -60,7 +60,7 @@ def editprompt(prompt_input, conversation_file="conversation_history.json"):
     openai.api_key = key  # Set the API key for the openai library
 
     # Load the existing conversation history
-    conversation = load_conversation_from_file(conversation_file)
+    conversation = load_conversation_db(conversation_file)
 
     # Append the user's message to the conversation
     conversation.append({"role": "user", "content": prompt_input})
@@ -76,7 +76,7 @@ def editprompt(prompt_input, conversation_file="conversation_history.json"):
     conversation.append({"role": "assistant", "content": assistant_message})
 
     # Save the updated conversation history to the file
-    save_conversation_to_file(conversation, conversation_file)
+    save_conversation_to_db(conversation, conversation_file)
     templates_dir = "templates"
     os.makedirs(templates_dir, exist_ok=True)
 

@@ -13,7 +13,6 @@ class UserCreate(UserBase):
 
 
 class UserLogin(UserBase):
-    email: str
     password: str
 
 
