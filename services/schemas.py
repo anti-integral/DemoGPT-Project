@@ -45,5 +45,9 @@ class PromptRequest(BaseModel):
 
 
 class EditPromptRequest(BaseModel):
-    editprompt: str
+    editPrompt: str
     # websiteID: int
+
+
+class EnhancePromptRequest(BaseModel):
+    enhancePrompt: str
