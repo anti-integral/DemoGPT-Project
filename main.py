@@ -199,12 +199,10 @@ async def edit_generate_website(
 
 
 @app.post("/enhance", response_class=HTMLResponse)
-async def edit_generate_website(
-    request: Request, data: EnhancePromptRequest, token: str = Depends(oauth2_scheme)
-):
+async def edit_generate_website(request: Request, data: EnhancePromptRequest):
     enhance_prompt_input = data.enhancePrompt
-    decode = decode_token(token)
-    user_id = decode.get("sub")
+    # decode = decode_token(token)
+    # user_id = decode.get("sub")
     # website_id = data.websiteID
 
     generated_content = enhanceprompt(enhance_prompt_input)

@@ -26,8 +26,7 @@ def prompt(
     user_id,
     conversation_file="conversation_history.json",
 ):
-    user_message = f"generate the code of my website. idea of my website is {app_idea} and features of my website is {app_feature} and look of 
-    my website is {app_look} add all code of my website in single html "
+    user_message = f"generate the code of my website. idea of my website is {app_idea} and features of my website is {app_feature} and look of my website is {app_look} add all code of my website in single html"
     key = config("openai_key")
     openai.api_key = key  # Set the API key for the openai library
 
@@ -92,13 +91,15 @@ def editprompt(prompt_input, conversation_file="conversation_history.json"):
 
     return assistant_message
 
-def enhanceprompt(enhance_prompt):
 
+def enhanceprompt(enhance_prompt):
     key = config("openai_key")
     openai.api_key = key  # Set the API key for the openai library
-    prompt__edit_input = f"{enhance_prompt} : enhance this prompt for better understanding"
+    prompt__edit_input = (
+        f"{enhance_prompt} : enhance this prompt for better understanding"
+    )
 
-    conversation_input ={"role": "user", "content": prompt__edit_input}
+    conversation_input = [{"role": "user", "content": prompt__edit_input}]
 
     # Call OpenAI API
     response = openai.ChatCompletion.create(model="gpt-4", messages=conversation_input)
