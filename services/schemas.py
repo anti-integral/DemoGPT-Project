@@ -46,6 +46,7 @@ class PromptRequest(BaseModel):
 
 class EditPromptRequest(BaseModel):
     editPrompt: str
+    projectID: str
     # websiteID: int
 
 

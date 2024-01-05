@@ -27,10 +27,12 @@ from sqlalchemy.exc import IntegrityError
 from prompt_service.prompt_to_code import prompt, editprompt, enhanceprompt
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from datetime import datetime
 import uvicorn
 import os
+import pymongo
+from typing import List
 
-UserCreate
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
@@ -148,8 +150,8 @@ async def generate_website(
     app_look = prompts.appLook
     decode = decode_token(token)
     user_id = decode.get("sub")
-
-    generated_content = prompt(app_idea, app_feature, app_look, user_id)
+    project_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    generated_content = prompt(app_idea, app_feature, app_look, user_id, project_id)
 
     templates_dir = "templates"
     os.makedirs(templates_dir, exist_ok=True)
@@ -170,12 +172,13 @@ async def generate_website(
 async def edit_generate_website(
     request: Request, data: EditPromptRequest, token: str = Depends(oauth2_scheme)
 ):
-    prompt_input = data.editprompt
+    prompt_input = data.editPrompt
+    project_id = data.projectID
     decode = decode_token(token)
     user_id = decode.get("sub")
     # website_id = data.websiteID
 
-    generated_content = editprompt(prompt_input)
+    generated_content = editprompt(prompt_input, user_id, project_id)
 
     templates_dir = "templates"
     os.makedirs(templates_dir, exist_ok=True)
@@ -214,6 +217,44 @@ async def enhance_app_idea(
         "status": "success",
         "message": "User enhance successfully",
         "result": {"enhace_data": generated_content},
+    }
+
+    return JSONResponse(content=enhance_response)
+
+
+@app.get("/getuserdata", response_class=HTMLResponse)
+async def enhance_app_idea(request: Request, token: str = Depends(oauth2_scheme)):
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+    query = {"user_id": user_id}
+
+    # Find all documents matching the query
+    user_objects = mongo_connection.userchathistory.find(query)
+
+    # Check if user_objects is a cursor
+    if not isinstance(user_objects, pymongo.cursor.Cursor):
+        # Handle the case where the result is not a cursor (e.g., empty result)
+        return JSONResponse(
+            content={"code": "404", "status": "error", "message": "No data found"}
+        )
+
+    # Extract relevant information from each document
+    collect_data: List[dict] = []
+    for user_object in user_objects:
+        collect_data.append(
+            {
+                "appIdea": user_object.get("app_idea", ""),
+                "appFeatures": user_object.get("app_feature", ""),
+                "appLook": user_object.get("app_look", ""),
+                "projectId": user_object.get("project_id", ""),
+            }
+        )
+
+    enhance_response = {
+        "code": "200",
+        "status": "success",
+        "message": "User enhance successfully",
+        "result": {"enhance_data": collect_data},
     }
 
     return JSONResponse(content=enhance_response)
