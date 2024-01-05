@@ -164,7 +164,7 @@ async def generate_website(
 
     return templates.TemplateResponse(
         "generated_website.html",
-        {"request": request, "content": generated_content},
+        {"request": request, "content": generated_content, "project_id": project_id},
     )
 
 

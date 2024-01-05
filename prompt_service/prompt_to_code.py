@@ -3,7 +3,8 @@ import json
 from decouple import config
 import os
 from services import mongo_connection
-from services.filter_result import filter_result
+
+# from services.filter_result import filter_result
 from datetime import datetime
 
 
