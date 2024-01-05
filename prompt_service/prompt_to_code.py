@@ -3,8 +3,6 @@ import json
 from decouple import config
 import os
 from services import mongo_connection
-
-# from services.filter_result import filter_result
 from datetime import datetime
 
 
@@ -23,13 +21,7 @@ def save_conversation_to_db(
     result = mongo_connection.userchathistory.insert_one(chat_history_document)
 
 
-def load_conversation_db(filename="conversation_history.json"):
-    try:
-        with open(filename, "r") as file:
-            conversation = json.load(file)
-    except FileNotFoundError:
-        conversation = []
-    return conversation
+# ------------------------------------------prompt--------------------------------------------------------
 
 
 def prompt(

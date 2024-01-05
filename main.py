@@ -223,7 +223,7 @@ async def enhance_app_idea(
 
 
 @app.get("/getuserdata", response_class=HTMLResponse)
-async def enhance_app_idea(request: Request, token: str = Depends(oauth2_scheme)):
+async def collect_user_details(request: Request, token: str = Depends(oauth2_scheme)):
     decode = decode_token(token)
     user_id = decode.get("sub")
     query = {"user_id": user_id}
@@ -250,14 +250,14 @@ async def enhance_app_idea(request: Request, token: str = Depends(oauth2_scheme)
             }
         )
 
-    enhance_response = {
+    collected_response = {
         "code": "200",
         "status": "success",
         "message": "User enhance successfully",
-        "result": {"enhance_data": collect_data},
+        "result": {"collect_data": collect_data},
     }
 
-    return JSONResponse(content=enhance_response)
+    return JSONResponse(content=collected_response)
 
 
 if (__name__) == "__main__":
