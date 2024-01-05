@@ -162,10 +162,24 @@ async def generate_website(
     ) as file:
         file.write(generated_content)
 
-    return templates.TemplateResponse(
-        "generated_website.html",
-        {"request": request, "content": generated_content, "project_id": project_id},
-    )
+    generate_response = {
+        "code": "200",
+        "status": "success",
+        "message": "code generated successfully",
+        "result": {"project_id": project_id},
+    }
+
+    return JSONResponse(content=generate_response)
+
+
+@app.post("/renderoutput", response_class=HTMLResponse)
+async def generate_website(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+):
+    decode = decode_token(token)
+
+    return templates.TemplateResponse("generated_website.html", {"request": request})
 
 
 @app.post("/edit", response_class=HTMLResponse)
@@ -192,13 +206,14 @@ async def edit_generate_website(
     # website_id = len(websites) + 1
     # websites[website_id] = {"content": generated_content}
 
-    return templates.TemplateResponse(
-        "generated_website.html",
-        {
-            "request": request,
-            "content": generated_content,
-        },
-    )
+    generate_edited_response = {
+        "code": "200",
+        "status": "success",
+        "message": "edit code generated successfully",
+        "result": {"project_id": project_id},
+    }
+
+    return JSONResponse(content=generate_edited_response)
 
 
 @app.post("/enhance", response_class=HTMLResponse)
