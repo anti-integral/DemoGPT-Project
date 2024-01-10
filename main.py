@@ -1,7 +1,8 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
+
+# from sqlalchemy.orm import Session
 from services.schemas import (
     UserCreate,
     UserResponse,
@@ -18,10 +19,10 @@ from services.crud import verify_password
 from decouple import config
 import openai
 from deployment_vercel import deploy_html_to_vercel
-from services.jwt import create_access_token, decode_token
+from services.jwt import create_access_token, decode_token, verify_google_token
 from services import mongo_connection, crud
 from datetime import timedelta
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2AuthorizationCodeBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 from prompt_service.prompt_to_code import prompt, editprompt, enhanceprompt
@@ -137,9 +138,10 @@ async def login_for_access_token(login_request: LoginRequest):
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+google_oauth2_scheme = OAuth2AuthorizationCodeBearer(tokenUrl="googletoken")
 
 
-@app.post("/generate", response_class=HTMLResponse)
+@app.post("/generate")
 async def generate_website(
     request: Request,
     prompts: PromptRequest,
@@ -153,36 +155,37 @@ async def generate_website(
     project_id = datetime.now().strftime("%Y%m%d%H%M%S")
     generated_content = prompt(app_idea, app_feature, app_look, user_id, project_id)
 
-    templates_dir = "templates"
-    os.makedirs(templates_dir, exist_ok=True)
+    # templates_dir = "templates"
+    # os.makedirs(templates_dir, exist_ok=True)
 
-    # Save the generated content to the "generated_website.html" file
-    with open(
-        os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
-    ) as file:
-        file.write(generated_content)
+    # # Save the generated content to the "generated_website.html" file
+    # with open(
+    #     os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
+    # ) as file:
+    #     file.write(generated_content)
 
     generate_response = {
         "code": "200",
         "status": "success",
         "message": "code generated successfully",
+        "code": generated_content,
         "result": {"project_id": project_id},
     }
 
     return JSONResponse(content=generate_response)
 
 
-@app.post("/renderoutput", response_class=HTMLResponse)
-async def generate_website(
-    request: Request,
-    token: str = Depends(oauth2_scheme),
-):
-    decode = decode_token(token)
+# @app.post("/renderoutput", response_class=HTMLResponse)
+# async def generate_website(
+#     request: Request,
+#     token: str = Depends(oauth2_scheme),
+# ):
+#     decode = decode_token(token)
 
-    return templates.TemplateResponse("generated_website.html", {"request": request})
+#     return templates.TemplateResponse("generated_website.html", {"request": request})
 
 
-@app.post("/edit", response_class=HTMLResponse)
+@app.post("/edit")
 async def edit_generate_website(
     request: Request, data: EditPromptRequest, token: str = Depends(oauth2_scheme)
 ):
@@ -194,14 +197,14 @@ async def edit_generate_website(
 
     generated_content = editprompt(prompt_input, user_id, project_id)
 
-    templates_dir = "templates"
-    os.makedirs(templates_dir, exist_ok=True)
+    # templates_dir = "templates"
+    # os.makedirs(templates_dir, exist_ok=True)
 
-    # Save the generated content to the "generated_website.html" file
-    with open(
-        os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
-    ) as file:
-        file.write(generated_content)
+    # # Save the generated content to the "generated_website.html" file
+    # with open(
+    #     os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
+    # ) as file:
+    #     file.write(generated_content)
 
     # website_id = len(websites) + 1
     # websites[website_id] = {"content": generated_content}
@@ -209,6 +212,7 @@ async def edit_generate_website(
     generate_edited_response = {
         "code": "200",
         "status": "success",
+        "code": generated_content,
         "message": "edit code generated successfully",
         "result": {"project_id": project_id},
     }
@@ -216,7 +220,7 @@ async def edit_generate_website(
     return JSONResponse(content=generate_edited_response)
 
 
-@app.post("/enhance", response_class=HTMLResponse)
+@app.post("/enhance")
 async def enhance_app_idea(
     request: Request, data: EnhancePromptRequest, token: str = Depends(oauth2_scheme)
 ):
@@ -233,7 +237,6 @@ async def enhance_app_idea(
         "message": "User enhance successfully",
         "result": {"enhace_data": generated_content},
     }
-
     return JSONResponse(content=enhance_response)
 
 
@@ -273,7 +276,3 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
     }
 
     return JSONResponse(content=collected_response)
-
-
-if (__name__) == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8036, reload=True)

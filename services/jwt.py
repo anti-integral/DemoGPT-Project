@@ -5,6 +5,11 @@ from typing import Optional
 
 from jose import JWTError, jwt
 from fastapi import HTTPException, Depends, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from decouple import config
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
@@ -33,3 +38,18 @@ def decode_token(token: str):
         return payload
     except JWTError:
         raise credentials_exception
+
+
+def verify_google_token(token):
+    CLIENT_ID = config("GOOGLE_CLIENT_ID")
+    try:
+        id_info = id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
+
+        if id_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
+            raise ValueError("Invalid issuer.")
+
+        return id_info["sub"]
+
+    except ValueError as e:
+        print(f"Token verification failed: {e}")
+        return None

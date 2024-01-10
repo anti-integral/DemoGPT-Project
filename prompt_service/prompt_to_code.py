@@ -4,6 +4,7 @@ from decouple import config
 import os
 from services import mongo_connection
 from datetime import datetime
+from services.filter_result import filter_code
 
 
 def save_conversation_to_db(
@@ -53,10 +54,11 @@ def prompt(
         user_id, app_idea, app_feature, app_look, project_id, conversation
     )
 
-    templates_dir = "templates"
-    os.makedirs(templates_dir, exist_ok=True)
+    # templates_dir = "templates"
+    # os.makedirs(templates_dir, exist_ok=True)
+    generated_code = filter_code(assistant_message)
 
-    return assistant_message
+    return generated_code
 
 
 # ------------------------------------------editprompt--------------------------------------------------------
@@ -99,10 +101,9 @@ def editprompt(prompt_input, user_id, project_id):
     else:
         print("No document found for the given user_id and project_id.")
 
-    templates_dir = "templates"
-    os.makedirs(templates_dir, exist_ok=True)
+    generated_code = filter_code(assistant_message)
 
-    return assistant_message
+    return generated_code
 
 
 def enhanceprompt(enhance_prompt):
