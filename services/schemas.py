@@ -38,6 +38,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GoogleLoginRequest(BaseModel):
+    google_token: str
+
+
 class PromptRequest(BaseModel):
     appIdea: str
     appFeatures: str

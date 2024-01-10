@@ -10,10 +10,18 @@ from fastapi.security import OAuth2PasswordBearer
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from decouple import config
+import secrets
+import string
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+
+def generate_random_password(length=12):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    password = "".join(secrets.choice(characters) for _ in range(length))
+    return password
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -47,9 +55,16 @@ def verify_google_token(token):
 
         if id_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
             raise ValueError("Invalid issuer.")
+        random_password = generate_random_password()
 
-        return id_info["sub"]
+        user_data = {
+            "email": id_info["email"],
+            "google_user_id": id_info.get("sub", ""),
+            "name": id_info.get("name", ""),
+            "password": random_password,
+        }
 
+        return user_data
     except ValueError as e:
         print(f"Token verification failed: {e}")
         return None

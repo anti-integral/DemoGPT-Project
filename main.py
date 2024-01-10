@@ -137,8 +137,60 @@ async def login_for_access_token(login_request: LoginRequest):
     return JSONResponse(content=login_response_data)
 
 
+@app.post("/google-login", response_model=Token)
+async def google_login(
+    token: str = Depends(
+        OAuth2AuthorizationCodeBearer(
+            tokenUrl="token",
+            authorizationUrl="https://www.googleapis.com/oauth2/v3/userinfo",
+        ),
+    ),
+):
+    user_data = verify_google_token(token)
+    existing_user = mongo_connection.Googlelogin.find_one({"email": user_data["email"]})
+
+    if existing_user:
+        # Generate an access token for the user
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(existing_user["_id"]), "email": existing_user["email"]},
+            expires_delta=access_token_expires,
+        )
+        user_id = str(existing_user["_id"])
+    else:
+        # User is not registered, handle accordingly (e.g., register the user)
+        # You can also save additional user details from Google here
+        # user_data = {"email": email, "password": ""}
+
+        result = mongo_connection.Googlelogin.insert_one(user_data)
+        inserted_user = mongo_connection.Googlelogin.find_one(
+            {"_id": result.inserted_id}
+        )
+
+        # Generate an access token for the newly registered user
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(inserted_user["_id"]), "email": inserted_user["email"]},
+            expires_delta=access_token_expires,
+        )
+        user_id = str(inserted_user["_id"])
+
+    # Prepare the response
+    login_response_data = {
+        "code": "200",
+        "status": "success",
+        "message": "User login successfully",
+        "result": {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user_id,
+        },
+    }
+
+    return JSONResponse(content=login_response_data)
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-google_oauth2_scheme = OAuth2AuthorizationCodeBearer(tokenUrl="googletoken")
 
 
 @app.post("/generate")
@@ -154,15 +206,6 @@ async def generate_website(
     user_id = decode.get("sub")
     project_id = datetime.now().strftime("%Y%m%d%H%M%S")
     generated_content = prompt(app_idea, app_feature, app_look, user_id, project_id)
-
-    # templates_dir = "templates"
-    # os.makedirs(templates_dir, exist_ok=True)
-
-    # # Save the generated content to the "generated_website.html" file
-    # with open(
-    #     os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
-    # ) as file:
-    #     file.write(generated_content)
 
     generate_response = {
         "code": "200",
@@ -197,18 +240,6 @@ async def edit_generate_website(
 
     generated_content = editprompt(prompt_input, user_id, project_id)
 
-    # templates_dir = "templates"
-    # os.makedirs(templates_dir, exist_ok=True)
-
-    # # Save the generated content to the "generated_website.html" file
-    # with open(
-    #     os.path.join(templates_dir, "generated_website.html"), "w", encoding="utf-8"
-    # ) as file:
-    #     file.write(generated_content)
-
-    # website_id = len(websites) + 1
-    # websites[website_id] = {"content": generated_content}
-
     generate_edited_response = {
         "code": "200",
         "status": "success",
@@ -226,8 +257,6 @@ async def enhance_app_idea(
 ):
     enhance_prompt_input = data.enhancePrompt
     decode = decode_token(token)
-    # user_id = decode.get("sub")
-    # website_id = data.websiteID
 
     generated_content = enhanceprompt(enhance_prompt_input)
 
