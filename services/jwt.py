@@ -7,11 +7,17 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, Depends, status
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from google.auth.transport import requests
-from google.oauth2 import id_token
+
+# from google.auth.transport import requests
+# from google.oauth2 import id_token
 from decouple import config
 import secrets
 import string
+from requests.exceptions import HTTPError as RequestsHTTPError
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.auth.exceptions import TransportError
+import google.auth.transport.requests
+import requests
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
@@ -49,22 +55,39 @@ def decode_token(token: str):
 
 
 def verify_google_token(token):
-    CLIENT_ID = config("GOOGLE_CLIENT_ID")
-    try:
-        id_info = id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
+    userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+    headers = {"Authorization": f"Bearer {token}"}
 
-        if id_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
-            raise ValueError("Invalid issuer.")
+    try:
+        # Create a request object using the GoogleAuthRequest class
+        request = GoogleAuthRequest()
+
+        # Make the request using the session.request method
+        with requests.session() as session:
+            response = session.request("GET", userinfo_url, headers=headers)
+            response.raise_for_status()
+            user_info = response.json()
+
         random_password = generate_random_password()
 
         user_data = {
-            "email": id_info["email"],
-            "google_user_id": id_info.get("sub", ""),
-            "name": id_info.get("name", ""),
+            "email": user_info.get("email", ""),
+            "google_user_id": user_info.get("sub", ""),
+            "name": user_info.get("name", ""),
             "password": random_password,
         }
 
         return user_data
-    except ValueError as e:
+
+    except TransportError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error connecting to Google API: {str(e)}",
+        )
+
+    except Exception as e:
         print(f"Token verification failed: {e}")
-        return None
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error during token verification",
+        )

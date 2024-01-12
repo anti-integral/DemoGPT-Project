@@ -1,6 +1,7 @@
 # main.py
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
+from jose import JWTError
 
 # from sqlalchemy.orm import Session
 from services.schemas import (
@@ -146,48 +147,76 @@ async def google_login(
         ),
     ),
 ):
-    user_data = verify_google_token(token)
-    existing_user = mongo_connection.Googlelogin.find_one({"email": user_data["email"]})
+    try:
+        user_data = verify_google_token(token)
 
-    if existing_user:
-        # Generate an access token for the user
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": str(existing_user["_id"]), "email": existing_user["email"]},
-            expires_delta=access_token_expires,
-        )
-        user_id = str(existing_user["_id"])
-    else:
-        # User is not registered, handle accordingly (e.g., register the user)
-        # You can also save additional user details from Google here
-        # user_data = {"email": email, "password": ""}
+        if not user_data:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Google token",
+            )
 
-        result = mongo_connection.Googlelogin.insert_one(user_data)
-        inserted_user = mongo_connection.Googlelogin.find_one(
-            {"_id": result.inserted_id}
+        existing_user = mongo_connection.Googlelogin.find_one(
+            {"email": user_data["email"]}
         )
 
-        # Generate an access token for the newly registered user
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": str(inserted_user["_id"]), "email": inserted_user["email"]},
-            expires_delta=access_token_expires,
+        if existing_user:
+            # Generate an access token for the user
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = create_access_token(
+                data={
+                    "sub": str(existing_user["_id"]),
+                    "email": existing_user["email"],
+                },
+                expires_delta=access_token_expires,
+            )
+            user_id = str(existing_user["_id"])
+        else:
+            # User is not registered, handle accordingly (e.g., register the user)
+            # You can also save additional user details from Google here
+            result = mongo_connection.Googlelogin.insert_one(user_data)
+            inserted_user = mongo_connection.Googlelogin.find_one(
+                {"_id": result.inserted_id}
+            )
+
+            if not inserted_user:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to insert user data",
+                )
+
+            # Generate an access token for the newly registered user
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = create_access_token(
+                data={
+                    "sub": str(inserted_user["_id"]),
+                    "email": inserted_user["email"],
+                },
+                expires_delta=access_token_expires,
+            )
+            user_id = str(inserted_user["_id"])
+
+        # Prepare the response
+        login_response_data = {
+            "code": "200",
+            "status": "success",
+            "message": "User login successfully",
+            "result": {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "user_id": user_id,
+            },
+        }
+
+        return JSONResponse(content=login_response_data)
+
+    except Exception as e:
+        # Log the exception for debugging
+        print(f"Error in google_login: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error",
         )
-        user_id = str(inserted_user["_id"])
-
-    # Prepare the response
-    login_response_data = {
-        "code": "200",
-        "status": "success",
-        "message": "User login successfully",
-        "result": {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user_id": user_id,
-        },
-    }
-
-    return JSONResponse(content=login_response_data)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
