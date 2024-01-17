@@ -56,3 +56,18 @@ class EditPromptRequest(BaseModel):
 
 class EnhancePromptRequest(BaseModel):
     enhancePrompt: str
+
+
+class EditPromptRequest(BaseModel):
+    editPrompt: str
+    projectID: str
+    # websiteID: int
+
+
+class EditRedirectRequest(BaseModel):
+    projectID: str
+    # websiteID: int
+
+
+class CodeRequest(BaseModel):
+    code: str

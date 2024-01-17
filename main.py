@@ -13,13 +13,14 @@ from services.schemas import (
     PromptRequest,
     EditPromptRequest,
     EnhancePromptRequest,
+    EditRedirectRequest,
 )
 from services.crud import verify_password
 
 # from services.database import SessionLocal, engine, Base
 from decouple import config
 import openai
-from deployment_vercel import deploy_html_to_vercel
+from services.deployment_vercel import deploy_html_to_vercel
 from services.jwt import create_access_token, decode_token, verify_google_token
 from services import mongo_connection, crud
 from datetime import timedelta
@@ -298,6 +299,59 @@ async def enhance_app_idea(
     return JSONResponse(content=enhance_response)
 
 
+@app.post("/image-upload")
+async def edit_generate_website(
+    request: Request, data: EditPromptRequest, token: str = Depends(oauth2_scheme)
+):
+    image_base64 = data.image
+    project_id = data.projectID
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+
+    generated_content = editprompt(image_base64, user_id, project_id)
+
+    generate_edited_response = {
+        "code": "200",
+        "status": "success",
+        "code": generated_content,
+        "message": "edit code generated successfully",
+        "result": {"project_id": project_id},
+    }
+
+    return JSONResponse(content=generate_edited_response)
+
+
+@app.post("/redirect-edit")
+async def edit_redirect_website(
+    request: Request, data: EditRedirectRequest, token: str = Depends(oauth2_scheme)
+):
+    project_id = data.projectID
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+
+    # generated_content = editprompt(image_base64, user_id, project_id)
+    query = {
+        "user_id": user_id,
+        "project_id": project_id,
+    }
+    chat_history_document = mongo_connection.userchathistory.find_one(query)
+    conversation = chat_history_document.get("conversation", [])
+    for item in conversation:
+        if item.get("role") == "assistant":
+            # Print or store the content field
+            assistant_content = item.get("content")
+    # print(assistant_content)
+    redirect_edited_response = {
+        "code": "200",
+        "status": "success",
+        "code": assistant_content,
+        "message": "edit redirect successfully",
+        "result": {"project_id": project_id},
+    }
+
+    return JSONResponse(content=redirect_edited_response)
+
+
 @app.get("/getuserdata", response_class=HTMLResponse)
 async def collect_user_details(request: Request, token: str = Depends(oauth2_scheme)):
     decode = decode_token(token)
@@ -334,3 +388,26 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
     }
 
     return JSONResponse(content=collected_response)
+
+
+@app.post("/deployment")
+async def deploy_website(
+    request: Request,
+    prompts: PromptRequest,
+    token: str = Depends(oauth2_scheme),
+):
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+    query = {"user_id": user_id}
+
+    # Find all documents matching the query
+    user_objects = mongo_connection.userchathistory.find(query)
+
+    deploy_html_to_vercel()
+    collected_response = {
+        "code": "200",
+        "status": "success",
+        "message": "deploy successfully",
+    }
+
+    return JSONResponse(collected_response)
