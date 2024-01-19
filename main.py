@@ -361,7 +361,6 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
 
     # Find all documents matching the query
     user_objects = mongo_connection.userchathistory.find(query)
-
     # Check if user_objects is a cursor
     if not isinstance(user_objects, pymongo.cursor.Cursor):
         # Handle the case where the result is not a cursor (e.g., empty result)
@@ -384,7 +383,7 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
     collected_response = {
         "code": "200",
         "status": "success",
-        "message": "User enhance successfully",
+        "message": "User data collected successfully",
         "result": {"collect_data": collect_data},
     }
 
@@ -435,3 +434,40 @@ async def deploy_website(
     except Exception as e:
         # Handle unexpected errors
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+
+@app.get("/getuserdeploymentdata", response_class=HTMLResponse)
+async def collect_user_details(request: Request, token: str = Depends(oauth2_scheme)):
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+    query = {"user_id": user_id}
+
+    # Find all documents matching the query
+    user_objects = mongo_connection.userchathistory.find(query)
+    user_deployed_objects = mongo_connection.Deployments.find(query)
+    # Check if user_objects is a cursor
+    if not isinstance(user_deployed_objects, pymongo.cursor.Cursor):
+        # Handle the case where the result is not a cursor (e.g., empty result)
+        return JSONResponse(
+            content={"code": "404", "status": "error", "message": "No data found"}
+        )
+
+    # Extract relevant information from each document
+    collect_data: List[dict] = []
+    for user_deoployed_object in user_objects:
+        collect_data.append(
+            {
+                "deploy_url": user_deoployed_object.get("deploy_url", ""),
+                "deployment_id": user_deoployed_object.get("deployment_id", ""),
+                "projectId": user_deoployed_object.get("project_id", ""),
+            }
+        )
+
+    collected_response = {
+        "code": "200",
+        "status": "success",
+        "message": "User deployed data collected successfully",
+        "result": {"collect_data": collect_data},
+    }
+
+    return JSONResponse(content=collected_response)
