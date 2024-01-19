@@ -14,6 +14,7 @@ from services.schemas import (
     EditPromptRequest,
     EnhancePromptRequest,
     EditRedirectRequest,
+    DeploymentRequest,
 )
 from services.crud import verify_password
 
@@ -393,17 +394,35 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
 @app.post("/deployment")
 async def deploy_website(
     request: Request,
-    prompts: PromptRequest,
+    data: DeploymentRequest,
     token: str = Depends(oauth2_scheme),
 ):
+    project_id = data.projectID
     decode = decode_token(token)
     user_id = decode.get("sub")
-    query = {"user_id": user_id}
+    find_query = {
+        "user_id": user_id,
+        "project_id": project_id,
+    }
+    chat_history_document = mongo_connection.userchathistory.find_one(find_query)
+    conversation = chat_history_document.get("conversation", [])
+    for item in conversation:
+        if item.get("role") == "assistant":
+            # Print or store the content field
+            frontend_code = item.get("content")
+    deployment_name = "sample"
+    response = deploy_html_to_vercel(frontend_code, deployment_name)
+
+    query = {
+        "user_id": user_id,
+        "project_id": project_id,
+        "deployment_id": response["deployment_id"],
+        "deploy_url": response["deploy_url"],
+    }
 
     # Find all documents matching the query
-    user_objects = mongo_connection.userchathistory.find(query)
+    user_objects = mongo_connection.Deployments.insert_one(query)
 
-    deploy_html_to_vercel()
     collected_response = {
         "code": "200",
         "status": "success",

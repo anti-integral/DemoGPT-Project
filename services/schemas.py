@@ -69,5 +69,11 @@ class EditRedirectRequest(BaseModel):
     # websiteID: int
 
 
+class DeploymentRequest(BaseModel):
+    projectID: str
+    # htmlContent: str
+    # websiteID: int
+
+
 class CodeRequest(BaseModel):
     code: str
