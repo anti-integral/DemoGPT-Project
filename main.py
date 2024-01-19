@@ -443,10 +443,9 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
     query = {"user_id": user_id}
 
     # Find all documents matching the query
-    user_objects = mongo_connection.userchathistory.find(query)
-    user_deployed_objects = mongo_connection.Deployments.find(query)
+    collect_deployed_objects = mongo_connection.Deployments.find(query)
     # Check if user_objects is a cursor
-    if not isinstance(user_deployed_objects, pymongo.cursor.Cursor):
+    if not isinstance(collect_deployed_objects, pymongo.cursor.Cursor):
         # Handle the case where the result is not a cursor (e.g., empty result)
         return JSONResponse(
             content={"code": "404", "status": "error", "message": "No data found"}
@@ -454,12 +453,12 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
 
     # Extract relevant information from each document
     collect_data: List[dict] = []
-    for user_deoployed_object in user_objects:
+    for deployed_object in collect_deployed_objects:
         collect_data.append(
             {
-                "deploy_url": user_deoployed_object.get("deploy_url", ""),
-                "deployment_id": user_deoployed_object.get("deployment_id", ""),
-                "projectId": user_deoployed_object.get("project_id", ""),
+                "deploy_url": deployed_object.get("deploy_url", ""),
+                "deployment_id": deployed_object.get("deployment_id", ""),
+                "projectId": deployed_object.get("project_id", ""),
             }
         )
 
