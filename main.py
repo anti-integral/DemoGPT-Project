@@ -15,13 +15,14 @@ from services.schemas import (
     EnhancePromptRequest,
     EditRedirectRequest,
     DeploymentRequest,
+    DeleteDeploymentRequest,
 )
 from services.crud import verify_password
 
 # from services.database import SessionLocal, engine, Base
 from decouple import config
 import openai
-from services.deployment_vercel import deploy_html_to_vercel
+from services.deployment_vercel import deploy_html_to_vercel, delete_deployment
 from services.jwt import create_access_token, decode_token, verify_google_token
 from services import mongo_connection, crud
 from datetime import timedelta
@@ -436,8 +437,10 @@ async def deploy_website(
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 
-@app.get("/getuserdeploymentdata", response_class=HTMLResponse)
-async def collect_user_details(request: Request, token: str = Depends(oauth2_scheme)):
+@app.get("/getuserdeploymentdata")
+async def collect_deployment_details(
+    request: Request, token: str = Depends(oauth2_scheme)
+):
     decode = decode_token(token)
     user_id = decode.get("sub")
     query = {"user_id": user_id}
@@ -470,3 +473,47 @@ async def collect_user_details(request: Request, token: str = Depends(oauth2_sch
     }
 
     return JSONResponse(content=collected_response)
+
+
+@app.post("/deletedeployment")
+async def delete_deployment(
+    request: Request, data: DeleteDeploymentRequest, token: str = Depends(oauth2_scheme)
+):
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+    deployment_id = data.deploymentID
+
+    try:
+        response = delete_deployment(deployment_id)
+
+        if response.status_code == 200:
+            query = {"user_id": user_id, "deployment_id": deployment_id}
+
+            # Find all documents matching the query
+            collect_deployed_objects = mongo_connection.Deployments.delete_one(query)
+            # Check if user_objects is a cursor
+
+            collected_response = {
+                "code": "200",
+                "status": "success",
+                "message": "User deployed data deleted successfully",
+            }
+
+            return JSONResponse(content=collected_response)
+        else:
+            error_response = {
+                "code": str(response.status_code),
+                "status": "error",
+                "message": f"Failed to delete deployment. Status code: {response.status_code}",
+            }
+            return JSONResponse(
+                content=error_response, status_code=response.status_code
+            )
+
+    except Exception as e:
+        error_response = {
+            "code": "500",
+            "status": "error",
+            "message": f"An error occurred: {str(e)}",
+        }
+        return JSONResponse(content=error_response, status_code=500)
