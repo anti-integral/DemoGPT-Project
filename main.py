@@ -411,7 +411,7 @@ async def deploy_website(
             if item.get("role") == "assistant":
                 # Print or store the content field
                 frontend_code = item.get("content")
-        deployment_name = f"{project_id}AIdev"
+        deployment_name = f"{project_id}aidev"
         response = deploy_html_to_vercel(frontend_code, deployment_name)
         site_url = response["deploy_url"]
         query = {
