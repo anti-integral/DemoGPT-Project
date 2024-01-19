@@ -3,7 +3,6 @@ from decouple import config
 import json, base64
 
 VERCEL_API_TOKEN = config("VERCEL_API_TOKEN")
-vercel_project_id = config("vercel_project_id")
 
 
 def deploy_html_to_vercel(frontend_code, deployment_name):
@@ -38,20 +37,31 @@ def deploy_html_to_vercel(frontend_code, deployment_name):
             }
         ],
     }
-    # Make the API request to deploy the HTML content
-    response = requests.post(
-        VERCEL_DEPLOY_API_URL,
-        data=json.dumps(deployment_payload),
-        headers=headers,
-    )
-    deployment_response = response.json()
 
-    deployment_id = deployment_response.get("id")
-    deploy_url = deployment_response.get("alias")[0]
+    try:
+        # Make the API request to deploy the HTML content
+        response = requests.post(
+            VERCEL_DEPLOY_API_URL,
+            data=json.dumps(deployment_payload),
+            headers=headers,
+        )
+        response.raise_for_status()  # Raise HTTPError for bad responses
 
-    # Print the response
-    # print(response.json())
-    return {"deployment_id": deployment_id, "deploy_url": deploy_url}
+        deployment_response = response.json()
+        deployment_id = deployment_response.get("id")
+        deploy_url = deployment_response.get("alias")[0]
+
+        # Print the response
+        return {"deployment_id": deployment_id, "deploy_url": deploy_url}
+    except requests.exceptions.RequestException as e:
+        # Handle request-related errors
+        return {"error": f"Request error: {e}"}
+    except json.JSONDecodeError as e:
+        # Handle JSON decoding errors
+        return {"error": f"JSON decoding error: {e}"}
+    except Exception as e:
+        # Handle other unexpected errors
+        return {"error": f"An unexpected error occurred: {e}"}
 
 
 # print(deploy_html_to_vercel(frontend_code=html_content))
@@ -82,51 +92,6 @@ def deploy_html_to_vercel(frontend_code, deployment_name):
 # response = requests.post(
 #     VERCEL_API_URL,
 #     data=json.dumps(project_payload),
-#     headers=headers,
-# )
-
-# # Print the response
-# print(response.json())
-
-
-# import requests
-# import json
-# import base64
-
-# # Vercel API endpoint for deployments
-# VERCEL_DEPLOY_API_URL = "https://api.vercel.com/v11/now/deployments"
-
-# # Your Vercel API token
-# VERCEL_API_TOKEN = "ZxSdhd9qF32H2UjYopZGC6iP"
-
-# # Headers including Vercel API token
-# headers = {
-#     "Content-Type": "application/json",
-#     "Authorization": f"Bearer {VERCEL_API_TOKEN}",
-# }
-
-# # Path to the HTML file you want to deploy
-
-# # Read the content of the HTML file
-# with open(html_file_path, "rb") as file:
-#     encoded_html_content = base64.b64encode(file.read()).decode("utf-8")
-
-# deployment_name = "test1"
-# # Payload for deploying the HTML file
-# deployment_payload = {
-#     "name": deployment_name,
-#     "files": [
-#         {
-#             "file": html_file_path,
-#             "data": html_content,
-#         }
-#     ],
-# }
-
-# # Make the API request to deploy the HTML file
-# response = requests.post(
-#     VERCEL_DEPLOY_API_URL,
-#     data=json.dumps(deployment_payload),
 #     headers=headers,
 # )
 
