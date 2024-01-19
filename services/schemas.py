@@ -75,5 +75,9 @@ class DeploymentRequest(BaseModel):
     # websiteID: int
 
 
+class DeleteDeploymentRequest(BaseModel):
+    deploymentID: str
+
+
 class CodeRequest(BaseModel):
     code: str
