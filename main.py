@@ -486,7 +486,7 @@ async def delete_user_deployment(
     try:
         response = delete_deployment(deployment_id)
 
-        if response.status_code == 200:
+        if response:
             query = {"user_id": user_id, "deployment_id": deployment_id}
 
             # Find all documents matching the query
