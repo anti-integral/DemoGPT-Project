@@ -502,13 +502,11 @@ async def delete_user_deployment(
             return JSONResponse(content=collected_response)
         else:
             error_response = {
-                "code": str(response.status_code),
+                "code": str(response),
                 "status": "error",
-                "message": f"Failed to delete deployment. Status code: {response.status_code}",
+                "message": f"Failed to delete deployment. Status code: {response}",
             }
-            return JSONResponse(
-                content=error_response, status_code=response.status_code
-            )
+            return JSONResponse(content=error_response, status_code=response)
 
     except Exception as e:
         error_response = {
