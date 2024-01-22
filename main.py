@@ -476,7 +476,7 @@ async def collect_deployment_details(
 
 
 @app.post("/deletedeployment")
-async def delete_deployment(
+async def delete_user_deployment(
     request: Request, data: DeleteDeploymentRequest, token: str = Depends(oauth2_scheme)
 ):
     decode = decode_token(token)
