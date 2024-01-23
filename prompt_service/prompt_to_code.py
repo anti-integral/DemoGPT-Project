@@ -5,7 +5,11 @@ import os
 from services import mongo_connection
 from datetime import datetime
 from services.filter_result import filter_code
-from services.prompt_generator import build_messages, edit_web_build_messages
+from prompt_service.prompt_generator import (
+    build_messages,
+    edit_web_build_messages,
+    image_build_messages,
+)
 
 key = config("openai_key")
 
@@ -39,12 +43,12 @@ def prompt(
     user_message = f"idea of my website is {app_idea} and features of my website is {app_feature} and look of my website is {app_look}"
     prompt_messages = build_messages(user_message)
     openai.api_key = key  # Set the API key for the openai library
+    response = openai.ChatCompletion.create(model="gpt-4", messages=prompt_messages)
 
     # Append the user's message to the conversation
     input_conversation = {"role": "user", "content": user_message}
 
     # Call OpenAI API with the entire conversation history
-    response = openai.ChatCompletion.create(model="gpt-4", messages=prompt_messages)
 
     # Extract the assistant's message from the response
     assistant_message = response["choices"][0]["message"]["content"]
@@ -115,6 +119,50 @@ def editprompt(prompt_input, user_id, project_id):
     return generated_code
 
 
+# ---------------------------------------------------------image prompt to code-----------------------
+
+
+def image_to_code(base64_image, user_id, project_id):
+    # try:
+    messages = image_build_messages(base64_image)
+    openai.api_key = key
+    response = openai.ChatCompletion.create(
+        model="gpt-4-vision-preview",
+        max_tokens=4096,
+        messages=messages,
+    )
+    # Append the user's message to the conversation
+    input_conversation = {"role": "user", "content": base64_image}
+
+    # Call OpenAI API with the entire conversation history
+
+    # Extract the assistant's message from the response
+    assistant_message = response["choices"][0]["message"]["content"]
+
+    generated_code = filter_code(assistant_message)
+    if generated_code:
+        # Append the assistant's message to the conversation
+        assistant_conversation = {"role": "assistant", "content": generated_code}
+    else:
+        assistant_conversation = {"role": "assistant", "content": assistant_message}
+
+    conversation = [input_conversation, assistant_conversation]
+    save_conversation_to_db(
+        user_id,
+        project_id,
+        conversation,
+        app_idea=None,
+        app_feature=None,
+        app_look=None,
+    )
+
+    # templates_dir = "templates"
+    # os.makedirs(templates_dir, exist_ok=True)
+
+    return generated_code
+
+
+# ------------------------------------------------enhanceprompt-----------------------------------------
 def enhanceprompt(enhance_prompt):
     openai.api_key = key  # Set the API key for the openai library
     prompt__edit_input = (
@@ -133,34 +181,3 @@ def enhanceprompt(enhance_prompt):
 # Example usage:
 # user_message = "Can you add a game to the home page for my visitors to play update this functionality and provide me fully updated code for my website with css and js i need full code"
 # prompt(user_message)
-
-
-# from fastapi.responses import StreamingResponse
-
-
-# def image_to_code(generation_type, image, message_history):
-#     try:
-#         messages = build_messages(image)
-
-#         if generation_type == "update" and message_history:
-#             for index, message in enumerate(message_history):
-#                 role = "assistant" if index % 2 == 0 else "user"
-#                 messages.append({"role": role, "content": message})
-
-#         openai.api_key = key
-
-#         response = openai.ChatCompletion.create(
-#             model="gpt-4-vision-preview",
-#             temperature=0,
-#             stream=True,
-#             max_tokens=4096,
-#             messages=messages,
-#         )
-#         print(response)
-
-#         # Access the content
-#         content = response["choices"][0]["message"]["content"]
-#         print(content)
-#         return content
-#     except Exception as error:
-#         return error

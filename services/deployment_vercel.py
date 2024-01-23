@@ -59,7 +59,7 @@ def deploy_html_to_vercel(frontend_code, deployment_name):
 def delete_deployment(deployment_id):
     VERCEL_DEPLOY_API_URL = "https://api.vercel.com/v11/now/deployments"
     # Your Vercel API token
-    # VERCEL_API_TOKEN = "your-vercel-api-token"
+    VERCEL_API_TOKEN = "your-vercel-api-token"
 
     # Headers including Vercel API token
     headers = {

@@ -12,6 +12,7 @@ from services.schemas import (
     LoginRequest,
     PromptRequest,
     EditPromptRequest,
+    ImageBase64Request,
     EnhancePromptRequest,
     EditRedirectRequest,
     DeploymentRequest,
@@ -29,7 +30,12 @@ from datetime import timedelta
 from fastapi.security import OAuth2PasswordBearer, OAuth2AuthorizationCodeBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
-from prompt_service.prompt_to_code import prompt, editprompt, enhanceprompt
+from prompt_service.prompt_to_code import (
+    prompt,
+    editprompt,
+    enhanceprompt,
+    image_to_code,
+)
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
@@ -302,21 +308,21 @@ async def enhance_app_idea(
 
 
 @app.post("/image-upload")
-async def edit_generate_website(
-    request: Request, data: EditPromptRequest, token: str = Depends(oauth2_scheme)
+async def image_generate_website(
+    request: Request, data: ImageBase64Request, token: str = Depends(oauth2_scheme)
 ):
-    image_base64 = data.image
-    project_id = data.projectID
+    image_base64 = data.ImageBase64
     decode = decode_token(token)
     user_id = decode.get("sub")
+    project_id = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    generated_content = editprompt(image_base64, user_id, project_id)
+    generated_content = image_to_code(image_base64, user_id, project_id)
 
     generate_edited_response = {
         "code": "200",
         "status": "success",
         "code": generated_content,
-        "message": "edit code generated successfully",
+        "message": "Image to website generated successfully",
         "result": {"project_id": project_id},
     }
 
