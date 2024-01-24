@@ -62,7 +62,12 @@ def prompt(
 
     conversation = [input_conversation, assistant_conversation]
     save_conversation_to_db(
-        user_id, app_idea, app_feature, app_look, project_id, conversation
+        user_id,
+        project_id,
+        conversation,
+        app_idea,
+        app_feature,
+        app_look,
     )
 
     # templates_dir = "templates"
