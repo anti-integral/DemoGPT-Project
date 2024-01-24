@@ -51,6 +51,8 @@ class PromptRequest(BaseModel):
 class EditPromptRequest(BaseModel):
     editPrompt: str
     projectID: str
+    # websiteID: int
+
 
 class EnhancePromptRequest(BaseModel):
     enhancePrompt: str
@@ -59,14 +61,22 @@ class EnhancePromptRequest(BaseModel):
 class EditPromptRequest(BaseModel):
     editPrompt: str
     projectID: str
+    # websiteID: int
 
 
 class EditRedirectRequest(BaseModel):
     projectID: str
+    # websiteID: int
+
+
+class ImageBase64Request(BaseModel):
+    ImageBase64: str
 
 
 class DeploymentRequest(BaseModel):
     projectID: str
+    # htmlContent: str
+    # websiteID: int
 
 
 class DeleteDeploymentRequest(BaseModel):
