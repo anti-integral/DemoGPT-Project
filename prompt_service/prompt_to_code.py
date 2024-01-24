@@ -15,7 +15,7 @@ key = config("openai_key")
 
 
 def save_conversation_to_db(
-    user_id, app_idea, app_feature, app_look, project_id, conversation
+    user_id, project_id, conversation, app_idea=None, app_feature=None, app_look=None
 ):
     chat_history_document = {
         "user_id": user_id,
