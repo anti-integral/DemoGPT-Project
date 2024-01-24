@@ -137,7 +137,7 @@ def image_to_code(base64_image, user_id, project_id):
         messages=messages,
     )
     # Append the user's message to the conversation
-    input_conversation = {"role": "user", "content": base64_image}
+    input_conversation = {"role": "user", "content": "base64_image"}
 
     # Call OpenAI API with the entire conversation history
 
