@@ -471,6 +471,7 @@ async def collect_deployment_details(
                 "deploy_url": deployed_object.get("deploy_url", ""),
                 "deployment_id": deployed_object.get("deployment_id", ""),
                 "projectId": deployed_object.get("project_id", ""),
+                "status": deployed_object.get("status", ""),
             }
         )
 
