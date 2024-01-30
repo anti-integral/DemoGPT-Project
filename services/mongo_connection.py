@@ -8,6 +8,8 @@ UserCollection = db["users"]
 userchathistory = db["chat_history"]
 Googlelogin = db["google_users"]
 Deployments = db["deployment_details"]
+community = db["community_web_details"]
+
 
 # def create(data):
 #     data = dict(data)

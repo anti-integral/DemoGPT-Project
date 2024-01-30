@@ -17,6 +17,8 @@ from services.schemas import (
     EditRedirectRequest,
     DeploymentRequest,
     DeleteDeploymentRequest,
+    ForgotPasswordRequest,
+    PublicPrivateRequest,
 )
 from services.crud import verify_password
 
@@ -425,6 +427,7 @@ async def deploy_website(
             "project_id": project_id,
             "deployment_id": response["deployment_id"],
             "deploy_url": site_url,
+            "status": "private",
         }
 
         # Find all documents matching the query
@@ -521,3 +524,94 @@ async def delete_user_deployment(
             "message": f"An error occurred: {str(e)}",
         }
         return JSONResponse(content=error_response, status_code=500)
+
+
+# from fastapi import HTTPException
+
+
+@app.get("/publicweb")
+async def make_public_or_private_deployment(
+    request: Request, data: PublicPrivateRequest, token: str = Depends(oauth2_scheme)
+):
+    try:
+        decode = decode_token(token)
+        deployment_id = data.deploymentID
+        status = data.StatusRequest
+        user_id = decode.get("sub")
+
+        query = {"user_id": user_id, "deployment_id": deployment_id}
+
+        # Find the document matching the query
+        collect_deployed_objects = mongo_connection.Deployments.find_one(query)
+
+        if collect_deployed_objects:
+            if status == "PUBLIC":
+                # Insert into community collection
+                community_page = mongo_connection.community.insert_one(
+                    collect_deployed_objects
+                )
+            elif status == "PRIVATE":
+                # Find and delete from community collection
+                community_page = mongo_connection.community.find_one_and_delete(query)
+
+            # Update the document in the same collection
+            mongo_connection.Deployments.update_one(
+                {"_id": collect_deployed_objects["_id"]},
+                {"$set": {"status": "public" if status == "PUBLIC" else "private"}},
+            )
+
+            collected_response = {
+                "code": "200",
+                "status": "success",
+                "message": "site status updated successfully",
+            }
+
+            return JSONResponse(content=collected_response)
+
+        else:
+            raise HTTPException(status_code=404, detail="Deployment not found")
+
+    except Exception as e:
+        # Handle unexpected errors
+        error_response = {
+            "code": "500",
+            "status": "error",
+            "message": f"An error occurred: {str(e)}",
+        }
+        return JSONResponse(content=error_response, status_code=500)
+
+
+@app.get("/getcommunitydata")
+async def collect_community_details(
+    request: Request, token: str = Depends(oauth2_scheme)
+):
+    decode = decode_token(token)
+    user_id = decode.get("sub")
+    # Find all documents matching the query
+    collect_community_objects = mongo_connection.community.find()
+    # Check if user_objects is a cursor
+    if not isinstance(collect_community_objects, pymongo.cursor.Cursor):
+        # Handle the case where the result is not a cursor (e.g., empty result)
+        return JSONResponse(
+            content={"code": "404", "status": "error", "message": "No data found"}
+        )
+
+    # Extract relevant information from each document
+    collect_data: List[dict] = []
+    for deployed_object in collect_community_objects:
+        collect_data.append(
+            {
+                "deploy_url": deployed_object.get("deploy_url", ""),
+                "deployment_id": deployed_object.get("deployment_id", ""),
+                "projectId": deployed_object.get("project_id", ""),
+            }
+        )
+
+    collected_response = {
+        "code": "200",
+        "status": "success",
+        "message": "User deployed data collected successfully",
+        "result": {"collect_data": collect_data},
+    }
+
+    return JSONResponse(content=collected_response)

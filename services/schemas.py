@@ -85,3 +85,13 @@ class DeleteDeploymentRequest(BaseModel):
 
 class CodeRequest(BaseModel):
     code: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+    # password: str
+
+
+class PublicPrivateRequest(BaseModel):
+    StatusRequest: str
+    deploymentID: str
