@@ -529,7 +529,7 @@ async def delete_user_deployment(
 # from fastapi import HTTPException
 
 
-@app.get("/publicweb")
+@app.post("/publicweb")
 async def make_public_or_private_deployment(
     request: Request, data: PublicPrivateRequest, token: str = Depends(oauth2_scheme)
 ):
